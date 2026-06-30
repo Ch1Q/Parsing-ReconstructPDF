@@ -5,13 +5,58 @@
 """
 
 import io
+import os
 from pathlib import Path
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from pypdf import PdfReader, PdfWriter, Transformation
 from pypdf.generic import RectangleObject
 
-# ── 常量 ──────────────────────────────────────────────
+# ── 图片压缩 ──────────────────────────────────────────
+
+def compress_image(img_path, max_size=1024, quality=75, debug=False):
+    """
+    压缩图片到实际显示尺寸
+    img_path: 原始图片路径
+    max_size: 最大边长（像素）
+    quality: JPEG 质量
+    返回: 压缩后的临时文件路径
+    """
+    from PIL import Image
+    import tempfile
+    
+    try:
+        img = Image.open(img_path)
+        orig_w, orig_h = img.size
+        orig_size = os.path.getsize(img_path)
+        
+        # 如果图片已经很小，不压缩
+        if max(orig_w, orig_h) <= max_size and orig_size <= 100 * 1024:
+            return img_path
+        
+        # 计算缩放比例
+        scale = min(max_size / orig_w, max_size / orig_h, 1.0)
+        new_w = int(orig_w * scale)
+        new_h = int(orig_h * scale)
+        
+        # 缩放
+        img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        
+        # 保存为临时 JPEG
+        tmp = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
+        img.save(tmp.name, 'JPEG', quality=quality)
+        
+        new_size = os.path.getsize(tmp.name)
+        ratio = new_size / orig_size * 100 if orig_size > 0 else 100
+        
+        if debug:
+            print(f"    [compress] {orig_w}x{orig_h} -> {new_w}x{new_h}, {orig_size//1024}KB -> {new_size//1024}KB ({ratio:.0f}%)")
+        
+        return tmp.name
+    except Exception as e:
+        if debug:
+            print(f"    [compress] 压缩失败: {e}")
+        return img_path
 
 SHRINK = 0.95
 
@@ -71,11 +116,13 @@ def build_page(page_elems, pw, ph, font_name, debug=False):
     """构建单个页面（不含公式）"""
     pkt = io.BytesIO()
     c = canvas.Canvas(pkt, pagesize=(pw, ph))
+    c.setPageCompression(1)  # 启用页面内容压缩
     
-    # 绘制图片
+    # 绘制图片（压缩后嵌入）
     for img, x, y, w, h in page_elems['images']:
         try:
-            c.drawImage(img, x, y, width=w, height=h)
+            compressed = compress_image(img, max_size=1024, quality=75, debug=debug)
+            c.drawImage(compressed, x, y, width=w, height=h)
             if debug:
                 print(f"    [build] 图片: ({x:.0f},{y:.0f}) {w:.0f}x{h:.0f}")
         except Exception as e:
@@ -154,10 +201,18 @@ def build_page(page_elems, pw, ph, font_name, debug=False):
 
 # ── 公式合并 ──────────────────────────────────────────
 
-def merge_formula(page, formula_pdf_path, tx, ty, tw, th, debug=False):
-    """将公式 PDF 合并到页面指定位置"""
+def merge_formula(page, formula_ref, tx, ty, tw, th, debug=False):
+    """将公式 PDF 合并到页面指定位置
+    formula_ref: 单个路径 str 或 (pdf_path, page_index) 元组
+    """
     try:
-        fp = PdfReader(formula_pdf_path).pages[0]
+        # 支持新的 (pdf_path, page_index) 格式
+        if isinstance(formula_ref, tuple):
+            pdf_path, page_idx = formula_ref
+            fp = PdfReader(pdf_path).pages[page_idx]
+        else:
+            fp = PdfReader(formula_ref).pages[0]
+        
         fw = float(fp.mediabox.width)
         fh = float(fp.mediabox.height)
         
@@ -255,6 +310,29 @@ def build_and_merge(page_elements, formula_list, formula_targets, formula_pdfs,
         writer.write(f)
     
     print(f"\n  saved: {output_pdf}")
+    
+    # qpdf 压缩去重
+    import subprocess
+    qpdf_path = r"C:\Program Files\qpdf 12.3.2\bin\qpdf.exe"
+    try:
+        size_before = os.path.getsize(str(output_pdf))
+        result = subprocess.run(
+            [qpdf_path, '--replace-input', str(output_pdf)],
+            capture_output=True, timeout=60
+        )
+        if result.returncode == 0:
+            size_after = os.path.getsize(str(output_pdf))
+            ratio = size_after / size_before * 100 if size_before > 0 else 100
+            print(f"  qpdf 压缩: {size_before//1024}KB -> {size_after//1024}KB ({ratio:.0f}%)")
+        else:
+            if debug:
+                print(f"  qpdf 压缩失败: {result.stderr.decode('utf-8', errors='replace')[:100]}")
+    except FileNotFoundError:
+        if debug:
+            print("  qpdf 未安装，跳过压缩")
+    except Exception as e:
+        if debug:
+            print(f"  qpdf 压缩异常: {e}")
     
     return output_pdf
 

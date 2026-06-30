@@ -141,6 +141,9 @@ $PY312 scripts\reconstruct_v2.py <输入PDF路径> --output-dir <输出目录>
 - 字号统一：block 级众数（而非行级最小值）
 - 公式缩放：高度比 `th/fh × SHRINK`，宽度溢出时二次缩小
 - 中文公式：`\mbox{}` 包裹，xeCJK 渲染
+- 图片压缩：嵌入前 PIL 缩放到 1024px，quality=75
+- 页面压缩：reportlab `setPageCompression(1)`
+- 公式去重：qpdf `--replace-input` 压缩重复资源
 
 ## 环境变量
 

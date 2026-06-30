@@ -14,7 +14,7 @@ from pypdf import PdfReader, PdfWriter
 # ── 常量 ──────────────────────────────────────────────
 
 REF_FONT_PT = 12.0
-BATCH_SIZE = 100
+BATCH_SIZE = 500  # 增大批次，减少字体嵌入次数
 
 # ── 进度显示 ──────────────────────────────────────────
 
@@ -295,14 +295,9 @@ def batch_compile(formulas, output_dir, debug=False):
                             if '!' in line:
                                 print(f"      ERROR: {line.strip()[:120]}")
         
-        # 拆分单页 PDF
+        # 不拆分，直接返回 (pdf_path, page_index) 引用
         for i in range(len(reader.pages)):
-            w = PdfWriter()
-            w.add_page(reader.pages[i])
-            op = os.path.join(bdir, f'formula_{i}.pdf')
-            with open(op, 'wb') as f:
-                w.write(f)
-            all_paths.append(op)
+            all_paths.append((pdf_path, i))
         
         prog.update(len(batch))
         
