@@ -5,15 +5,13 @@ output/
 chapters/
 *.pdf
 
-# 排除大型图片文件
+# 排除大型图片文件（docs/images/ 下的效果图除外）
 *.png
 *.jpg
 *.jpeg
 *.bmp
 *.tiff
-
-# 保留根目录效果图
-!效果图*.png
+!docs/images/*.png
 
 # 排除临时工作目录
 _easyocr_work/
