@@ -190,9 +190,14 @@ def make_latex_template(formulas, debug=False):
     if has_cn and debug:
         print(f"    [template] 检测到中文公式，启用 xeCJK 支持")
     
-    # 使用内联模式 $...$（保持原有逻辑）
-    pages = [f"\\begin{{preview}}\n${f}$\n\\end{{preview}}\n\\newpage" 
-             for f in processed_formulas]
+    # 根据公式内容选择模式：align/aligned 等环境用 \[...\]，普通公式用 $...$
+    pages = []
+    for f in processed_formulas:
+        needs_display = bool(re.search(r'\\begin\{(align|aligned|gather|eqnarray)', f))
+        if needs_display:
+            pages.append(f"\\begin{{preview}}\n\\[{f}\\]\n\\end{{preview}}\n\\newpage")
+        else:
+            pages.append(f"\\begin{{preview}}\n${f}$\n\\end{{preview}}\n\\newpage")
     
     # 基础模板
     template = r"""\documentclass{article}
