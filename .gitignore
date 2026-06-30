@@ -1,0 +1,40 @@
+# 排除输出目录（OCR结果、复刻版PDF、图片等）
+output/
+
+# 排除原始PDF文件
+chapters/
+*.pdf
+
+# 排除大型图片文件
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tiff
+
+# 排除临时工作目录
+_easyocr_work/
+easyocr_output/
+
+# 排除Python缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 排除IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 排除系统文件
+Thumbs.db
+.DS_Store
+
+# 排除conda环境
+envs/
+*.egg-info/
+dist/
+build/

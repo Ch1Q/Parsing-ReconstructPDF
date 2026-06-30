@@ -1,0 +1,75 @@
+{
+    "description": "第一章分析结果 - 面积/字数方法（仅正文文本）",
+    "source": "第1章_信号与系统分析的理论基础",
+    "total_pages": 33,
+
+    "text": {
+        "description": "正文文本分类（面积/字数方法）",
+        "method": "area_per_char",
+        "categories": [
+            {
+                "name": "small",
+                "area_per_char": 41.6,
+                "height_px": 9.0,
+                "count": 3,
+                "usage": "小字注释"
+            },
+            {
+                "name": "normal",
+                "area_per_char": 130.7,
+                "height_px": 12.3,
+                "count": 872,
+                "usage": "正文"
+            },
+            {
+                "name": "heading",
+                "area_per_char": 233.4,
+                "height_px": 16.8,
+                "count": 87,
+                "usage": "标题"
+            },
+            {
+                "name": "title",
+                "area_per_char": 392.5,
+                "height_px": 20.2,
+                "count": 4,
+                "usage": "大标题"
+            }
+        ],
+        "tolerance": 0.5
+    },
+
+    "formula": {
+        "description": "公式分类（按高度）",
+        "method": "height",
+        "categories": [
+            {
+                "name": "normal",
+                "height_px": 12.6,
+                "count": 258,
+                "usage": "主要行内公式"
+            },
+            {
+                "name": "large",
+                "height_px": 26.7,
+                "count": 84,
+                "usage": "较大公式"
+            }
+        ],
+        "tolerance": 0.3
+    },
+
+    "caption": {
+        "description": "图片标注分类（按高度）",
+        "method": "height",
+        "categories": [
+            {
+                "name": "normal",
+                "height_px": 11.3,
+                "count": 46,
+                "usage": "主要标注"
+            }
+        ],
+        "tolerance": 0.3
+    }
+}
