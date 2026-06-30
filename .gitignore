@@ -12,6 +12,9 @@ chapters/
 *.bmp
 *.tiff
 
+# 保留根目录效果图
+!效果图*.png
+
 # 排除临时工作目录
 _easyocr_work/
 easyocr_output/
