@@ -9,9 +9,11 @@
 ```
 
 - 公式：LaTeX 编译为矢量 PDF（Asana-Math 字体），pypdf 合并
-- 文本：reportlab 直接绘制（Microsoft YaHei），category 匹配字号
+- 文本：reportlab 直接绘制（Microsoft YaHei），block 级众数统一字号
 - 图片/表格：直接嵌入 MinerU 提取的图片
-- 标题/页眉/页码：reportlab 绘制，粗体区分层级
+- 标题/页眉/页脚/页码：reportlab 绘制
+- 公式序号：提取 `\tag{}` 后作为文本绘制在页面右侧
+- 中文公式：自动用 `\mbox{}` 包裹中文，xeCJK 渲染
 
 ## 环境要求
 
@@ -53,16 +55,15 @@ pip install reportlab pypdf
 # 用 py312 环境运行（必须指定完整路径，避免 PATH 指向其他 Python）
 PY312=C:\Users\29595\Miniconda3\envs\py312\python.exe
 
-# 处理单个 PDF
-$PY312 scripts\reconstruct.py <输入PDF路径>
+# 处理单个 PDF（推荐用 v2 脚本）
+$PY312 scripts\reconstruct_v2.py <输入PDF路径>
+
+# 处理含中文公式的 PDF（需设置环境变量）
+$env:MINERU_FORMULA_CH_SUPPORT='true'
+$PY312 scripts\reconstruct_v2.py <输入PDF路径>
 
 # 指定输出目录
-$PY312 scripts\reconstruct.py <输入PDF路径> --output-dir <输出目录>
-
-# 批量处理
-for %f in (*.pdf) do (
-    C:\Users\29595\Miniconda3\envs\py312\python.exe scripts\reconstruct.py "%f"
-)
+$PY312 scripts\reconstruct_v2.py <输入PDF路径> --output-dir <输出目录>
 ```
 
 输出自动命名，重复运行追加 `_v2`, `_v3` 后缀。
@@ -75,6 +76,7 @@ for %f in (*.pdf) do (
 | `--output-dir` | 输出目录 | `output/<pdf名>/` |
 | `--config` | 字体配置 JSON | `config/font_classes.json` |
 | `--project-dir` | 项目根目录 | 脚本上级目录 |
+| `--debug` | 启用调试输出 | 默认开启 |
 
 ## 处理流程
 
@@ -83,8 +85,10 @@ for %f in (*.pdf) do (
       ↓ 输出 middle.json + 图片
 [2/3] 数据收集 + 公式批量编译（~10-30秒）
       ↓ preview 包，每公式一页，按页裁剪
+      ↓ 中文公式自动 \mbox{} 包裹
 [3/3] 页面构建 + 公式合并（~2-25秒）
       ↓ reportlab 画文本/网格 + pypdf 合并公式
+      ↓ 公式序号 \tag{} 提取后绘制在页面右侧
 输出: <pdf名>_复刻版.pdf
 ```
 
@@ -92,15 +96,16 @@ for %f in (*.pdf) do (
 
 | 类型 | 说明 |
 |------|------|
-| text | 正文段落（category 匹配字号，同 line 统一） |
+| text | 正文段落（block 级众数统一字号） |
 | inline_equation | 行内公式（clean_latex 清理后编译） |
-| interline_equation | 独立公式（array 环境自动拆行） |
+| interline_equation | 独立公式（array 环境自动拆行，支持 `\tag{}` 序号） |
 | image | 图片 |
 | chart | 图表（同 image） |
 | table | 表格（用 MinerU 截图渲染） |
 | title | 标题（level 1 粗体，level 2 常规） |
 | header | 页眉 |
 | page_number | 页码 |
+| footer | 页脚 |
 | index | 目录/索引条目 |
 
 ## 项目结构
@@ -111,7 +116,11 @@ for %f in (*.pdf) do (
 ├── docs/
 │   └── 踩坑记录.md         # 环境配置 + 排版复刻踩坑
 ├── scripts/
-│   └── reconstruct.py      # 主脚本（MinerU + 排版复刻）
+│   ├── reconstruct.py      # 主脚本 v1
+│   ├── reconstruct_v2.py   # 主脚本 v2（重构版，推荐）
+│   ├── fonts.py            # 字体管理模块
+│   ├── latex_compiler.py   # LaTeX 公式编译模块
+│   └── page_builder.py     # 页面构建模块
 ├── output/                 # 输出目录（自动创建）
 │   └── <pdf名>/
 │       └── <pdf名>/ocr/
@@ -125,12 +134,20 @@ for %f in (*.pdf) do (
 
 ## 关键配置
 
-- `SHRINK = 0.95`：全局缩小因子，避免文字溢出
+- `SHRINK = 0.88`：整体缩小因子，避免文字溢出
+- `SHRINK_SHORT = 0.75`：短文本（1-2字）缩小因子
 - `TEXT_TOLERANCE = 1.0`：文本 category 匹配容差
 - `REF_FONT_PT = 12.0`：公式编译参考字号
+- 字号统一：block 级众数（而非行级最小值）
 - 公式缩放：高度比 `th/fh × SHRINK`，宽度溢出时二次缩小
-- 多行公式：`fh/fw >= 0.12` 按宽度缩放，否则按高度
-- 表格公式：`bbox_aspect > pdf_aspect × 1.5` 按高度缩放不加溢出修正
+- 中文公式：`\mbox{}` 包裹，xeCJK 渲染
+
+## 环境变量
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `MINERU_FORMULA_CH_SUPPORT` | 启用中文公式解析（实验性） | `false` |
+| `MINERU_DEVICE_MODE` | MinerU 推理设备 | `cuda` |
 
 ## 已知限制
 

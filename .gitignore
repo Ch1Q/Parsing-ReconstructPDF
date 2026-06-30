@@ -16,6 +16,10 @@ chapters/
 _easyocr_work/
 easyocr_output/
 
+# 排除测试和临时脚本
+scripts/test_*.py
+scripts/run_comm.py
+
 # 排除Python缓存
 __pycache__/
 *.pyc
