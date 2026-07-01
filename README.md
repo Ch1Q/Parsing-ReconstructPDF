@@ -1,11 +1,11 @@
 # 扫描版 PDF 排版复刻工具
 
-将扫描版 PDF 通过 MinerU OCR 解析，复刻为可搜索、可选中的矢量 PDF。
+将扫描版 PDF 通过 MinerU（hybrid 后端，VLM+OCR 双引擎）解析，复刻为可搜索、可选中的矢量 PDF。
 
 ## 原理
 
 ```
-扫描PDF → MinerU OCR → middle.json → 公式LaTeX编译 + 文本渲染 + 图片放置 → 矢量PDF
+扫描PDF → MinerU hybrid(VLM+OCR) → middle.json → 公式LaTeX编译 + 文本渲染 + 图片放置 → 矢量PDF
 ```
 
 - 公式：LaTeX 编译为矢量 PDF（Asana-Math 字体），pypdf 合并
@@ -25,10 +25,10 @@
 | 组件 | 版本 | 说明 |
 |------|------|------|
 | Python | 3.12 | Windows 不支持 3.13（ray 依赖） |
-| MinerU | ≥3.4.0 | OCR 解析引擎 |
+| MinerU | ≥3.4.0 | VLM+OCR 双引擎解析 |
 | MiKTeX | 最新 | LaTeX 编译（xelatex） |
 | PyTorch | CUDA 版 | GPU 加速推理 |
-| GPU | ≥4GB 显存 | RTX 4060 Laptop 测试通过 |
+| GPU | ≥8GB 显存 | RTX 4060 Laptop 测试通过 |
 
 ## 安装
 
@@ -43,8 +43,8 @@ pip install -U "mineru[all]"
 # 3. 安装 CUDA PyTorch（必须！mineru[all] 默认装 CPU 版）
 pip install --force-reinstall torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
-# 4. 下载 MinerU 模型
-mineru-models-download -s modelscope -m pipeline
+# 4. 下载 MinerU 模型（hybrid 后端需要 pipeline + vlm 模型）
+mineru-models-download -s modelscope
 
 # 5. 安装 MiKTeX + Asana-Math 字体
 winget install MiKTeX.MiKTeX --accept-package-agreements --accept-source-agreements
@@ -86,7 +86,7 @@ $PY312 scripts\reconstruct_v2.py <输入PDF路径> --output-dir <输出目录>
 ## 处理流程
 
 ```
-[1/3] MinerU OCR 解析（~5秒/页，GPU）
+[1/3] MinerU hybrid 解析（VLM+OCR，~5-15秒/页，GPU）
       ↓ 输出 middle.json + 图片
 [2/3] 数据收集 + 公式批量编译（~10-30秒）
       ↓ preview 包，每公式一页，按页裁剪
@@ -166,6 +166,6 @@ $PY312 scripts\reconstruct_v2.py <输入PDF路径> --output-dir <输出目录>
 
 ## 参考
 
-- [MinerU](https://github.com/opendatalab/MinerU) - OCR 解析引擎
+- [MinerU](https://github.com/opendatalab/MinerU) - VLM+OCR 双引擎解析
 - [Asana-Math](https://ctan.org/pkg/asana-math) - 公式字体
 - [MiKTeX](https://miktex.org/) - LaTeX 发行版

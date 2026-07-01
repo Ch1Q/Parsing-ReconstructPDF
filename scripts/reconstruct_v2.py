@@ -107,7 +107,7 @@ def run_mineru(input_pdf, output_dir):
     env = os.environ.copy()
     env['MINERU_DEVICE_MODE'] = 'cuda'
     proc = subprocess.Popen(
-        [mineru_cmd, '-p', str(input_pdf), '-o', str(output_dir), '-b', 'pipeline', '-m', 'ocr'],
+        [mineru_cmd, '-p', str(input_pdf), '-o', str(output_dir), '-b', 'hybrid'],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env
     )
     for line in proc.stdout:
